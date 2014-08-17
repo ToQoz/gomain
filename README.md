@@ -2,6 +2,10 @@
 
 Write go code in your $EDITOR and run it!
 
+## Installation
+
+`go get github.com/ToQoz/gomain`
+
 ## Usage
 
 ```
