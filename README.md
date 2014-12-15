@@ -2,6 +2,8 @@
 
 Write go code in your $EDITOR and run it!
 
+![demo.gif](http://toqoz.net/gif4demo/gomain.gif)
+
 ## Installation
 
 `go get github.com/ToQoz/gomain`
