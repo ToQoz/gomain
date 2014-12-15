@@ -7,11 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 var (
-	exitCode = 0
-	tmpl     = `package main
+	exitCode    = 0
+	defaultTmpl = []byte(`package main
 
 import (
 	"fmt"
@@ -20,7 +21,7 @@ import (
 func main() {
 	fmt.Println("Hello, gomain")
 }
-`
+`)
 )
 
 func reportError(err error) {
@@ -31,38 +32,45 @@ func reportError(err error) {
 func main() {
 	defer os.Exit(exitCode)
 
+	if err := doMain(nil); err != nil {
+		reportError(err)
+		return
+	}
+}
+
+func doMain(tmpl []byte) error {
 	out := bufio.NewWriter(os.Stdout)
 
 	tempDir, err := ioutil.TempDir("", "gomain")
 	if err != nil {
-		reportError(err)
-		return
+		return err
 	}
 	defer os.RemoveAll(tempDir)
 
 	// write template contents to main.go
 	f, err := os.Create(filepath.Join(tempDir, "main.go"))
 	if err != nil {
-		reportError(err)
-		return
+		return err
 	}
 	defer os.Remove(f.Name())
-	f.Write([]byte(tmpl))
+	if tmpl == nil {
+		f.Write([]byte(defaultTmpl))
+	} else {
+		f.Write([]byte(tmpl))
+	}
 	f.Close()
 
 	err = launchEditor(f.Name())
 	if err != nil {
-		reportError(err)
-		return
+		return err
 	}
 
 	// show contents of main.go
-	data, err := ioutil.ReadFile(f.Name())
+	writtenCode, err := ioutil.ReadFile(f.Name())
 	if err != nil {
-		reportError(err)
-		return
+		return err
 	}
-	out.Write(data)
+	out.Write(writtenCode)
 
 	// go run main.go && show result
 	out.WriteRune('\n')
@@ -73,7 +81,15 @@ func main() {
 	cmd.Stderr = out
 	cmd.Run()
 
+	out.Write([]byte("re-edit? [y/N]"))
 	out.Flush()
+
+	s, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	if isYes(s) {
+		return doMain(writtenCode)
+	}
+
+	return nil
 }
 
 func launchEditor(filename string) error {
@@ -87,4 +103,9 @@ func launchEditor(filename string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func isYes(txt string) bool {
+	txt = strings.Trim(strings.ToUpper(txt), " \n")
+	return txt == "Y" || txt == "YES"
 }
