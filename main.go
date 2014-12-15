@@ -81,7 +81,7 @@ func doMain(tmpl []byte) error {
 	cmd.Stderr = out
 	cmd.Run()
 
-	out.Write([]byte("re-edit? [y/N]"))
+	out.Write([]byte("\nre-edit? y/[N]"))
 	out.Flush()
 
 	s, _ := bufio.NewReader(os.Stdin).ReadString('\n')
